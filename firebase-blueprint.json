@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user preferences, goals, and consistency data.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique identifier for the user." },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "goals": { "type": "string", "description": "Primary learning goals." },
+        "subjects": { "type": "array", "items": { "type": "string" } },
+        "availableTime": { "type": "number", "description": "Hours available per day." },
+        "streak": { "type": "integer", "description": "Current learning streak in days." },
+        "lastActive": { "type": "string", "format": "date-time" },
+        "onboarded": { "type": "boolean" },
+        "learningMode": { "type": "string", "enum": ["tutor", "thinker", "tester"] },
+        "xp": { "type": "integer", "description": "Total experience points." },
+        "level": { "type": "integer", "description": "Current user level." },
+        "recentActivity": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string" },
+              "title": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" },
+              "xpGained": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "required": ["uid", "email", "xp", "level"]
+    },
+    "TestResult": {
+      "title": "Test Result",
+      "description": "Stores the results of user tests in Mr. Tester mode.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "examId": { "type": "string" },
+        "examName": { "type": "string" },
+        "score": { "type": "integer" },
+        "totalQuestions": { "type": "integer" },
+        "percentage": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "questions": { "type": "array" }
+      },
+      "required": ["uid", "examId", "score", "totalQuestions", "timestamp"]
+    },
+    "StudyPlan": {
+      "title": "Study Plan",
+      "description": "A generated study plan for a specific goal.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "title": { "type": "string" },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "title"]
+    },
+    "Task": {
+      "title": "Study Task",
+      "description": "An individual study session or task.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "planId": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "duration": { "type": "number", "description": "Duration in minutes." },
+        "status": { "type": "string", "enum": ["pending", "completed", "missed"] },
+        "rescheduled": { "type": "boolean" },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "planId", "title", "date", "status"]
+    },
+    "Exam": {
+      "title": "Exam Schedule",
+      "description": "User's upcoming exams and syllabus information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "subject": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "syllabusText": { "type": "string" },
+        "syllabusFileUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "subject", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "User profile documents."
+    },
+    "/studyPlans/{planId}": {
+      "schema": "StudyPlan",
+      "description": "Study plan documents."
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Individual study tasks."
+    },
+    "/exams/{examId}": {
+      "schema": "Exam",
+      "description": "User exam schedules and syllabus."
+    },
+    "/testResults/{resultId}": {
+      "schema": "TestResult",
+      "description": "User test results from Mr. Tester mode."
+    }
+  }
+}
