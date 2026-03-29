@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, increment } from 'firebase/firestore';
+import { useSearchParams } from 'react-router-dom';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../components/FirebaseProvider';
-import { Exam, TestResult } from '../types';
+import { Exam, TestResult, Task, StudyPlan } from '../types';
 import { GoogleGenAI } from "@google/genai";
-import { Brain, ChevronRight, Loader2, CheckCircle2, XCircle, AlertCircle, Trophy, History, ArrowLeft, Play, Sparkles } from 'lucide-react';
+import { Brain, ChevronRight, Loader2, CheckCircle2, XCircle, AlertCircle, Trophy, History, ArrowLeft, Play, Sparkles, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { addXP, XP_VALUES } from '../lib/xp-utils';
@@ -14,6 +15,7 @@ interface Question {
   id: string;
   type: 'mcq' | 'short' | 'concept';
   question: string;
+  topic: string;
   options?: string[];
   correctAnswer: string;
   explanation: string;
@@ -21,6 +23,7 @@ interface Question {
 
 export const MrTesterMode: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [exams, setExams] = useState<Exam[]>([]);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +34,11 @@ export const MrTesterMode: React.FC = () => {
   const [testState, setTestState] = useState<'selection' | 'taking' | 'results'>('selection');
   const [testResult, setTestResult] = useState<TestResult | null>(null);
 
+  const planId = searchParams.get('planId');
+  const taskId = searchParams.get('taskId');
+  const topicsParam = searchParams.get('topics');
+  const modeParam = searchParams.get('mode');
+
   useEffect(() => {
     if (!user) return;
 
@@ -39,7 +47,16 @@ export const MrTesterMode: React.FC = () => {
         const q = query(collection(db, 'exams'), where('uid', '==', user.uid));
         const snap = await getDocs(q).catch(err => handleFirestoreError(err, OperationType.GET, 'exams'));
         if (snap) {
-          setExams(snap.docs.map(d => ({ id: d.id, ...d.data() } as Exam)));
+          const fetchedExams = snap.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
+          setExams(fetchedExams);
+
+          // Auto-start logic
+          if (modeParam === 'weak-areas') {
+            generateWeakAreaTest();
+          } else if (taskId && topicsParam) {
+            const topics = topicsParam.split(',');
+            generateTaskTest(topics, taskId, planId);
+          }
         }
       } catch (error) {
         console.error('Error fetching exams:', error);
@@ -49,7 +66,110 @@ export const MrTesterMode: React.FC = () => {
     };
 
     fetchExams();
-  }, [user]);
+  }, [user, taskId, topicsParam, planId, modeParam]);
+
+  const generateWeakAreaTest = async () => {
+    setGenerating(true);
+    try {
+      // Fetch weak areas first
+      const resultsQ = query(collection(db, 'testResults'), where('uid', '==', user?.uid));
+      const resultsSnap = await getDocs(resultsQ);
+      const results = resultsSnap.docs.map(d => d.data() as TestResult);
+      
+      const topicStats: Record<string, { score: number, total: number }> = {};
+      results.forEach(res => {
+        res.breakdown?.forEach(b => {
+          if (!topicStats[b.topic]) topicStats[b.topic] = { score: 0, total: 0 };
+          topicStats[b.topic].score += b.score;
+          topicStats[b.topic].total += b.total;
+        });
+      });
+
+      const weakTopics = Object.entries(topicStats)
+        .map(([topic, stats]) => ({ topic, percentage: (stats.score / stats.total) * 100 }))
+        .filter(t => t.percentage < 70)
+        .sort((a, b) => a.percentage - b.percentage)
+        .slice(0, 3)
+        .map(t => t.topic);
+
+      if (weakTopics.length === 0) {
+        alert("No weak areas detected yet. Take more tests!");
+        setTestState('selection');
+        return;
+      }
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const prompt = `Generate a targeted practice test for the following weak topics: ${weakTopics.join(', ')}.
+      
+      Generate 5 challenging questions.
+      Return as a JSON array of objects with this structure:
+      {
+        "id": "unique_id",
+        "type": "mcq" | "short" | "concept",
+        "question": "string",
+        "topic": "string (must be one of the weak topics)",
+        "options": ["string", "string", "string", "string"] (only for mcq),
+        "correctAnswer": "string",
+        "explanation": "string"
+      }`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: { responseMimeType: "application/json" }
+      });
+
+      const generatedQuestions = JSON.parse(response.text) as Question[];
+      setQuestions(generatedQuestions);
+      setTestState('taking');
+    } catch (error) {
+      console.error('Error generating weak area test:', error);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const generateTaskTest = async (topics: string[], tId: string, pId: string | null) => {
+    setGenerating(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const prompt = `Generate a daily assessment test for the following topics: ${topics.join(', ')}.
+      
+      Generate 5 questions in total. 
+      Mix of:
+      - MCQs (with 4 options)
+      - Short answer questions
+      - Concept-based questions
+      
+      Return as a JSON array of objects with this structure:
+      {
+        "id": "unique_id",
+        "type": "mcq" | "short" | "concept",
+        "question": "string",
+        "topic": "string",
+        "options": ["string", "string", "string", "string"] (only for mcq),
+        "correctAnswer": "string",
+        "explanation": "string"
+      }`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const generatedQuestions = JSON.parse(response.text) as Question[];
+      setQuestions(generatedQuestions);
+      setTestState('taking');
+    } catch (error) {
+      console.error('Error generating task test:', error);
+      alert('Failed to generate test. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const generateTest = async (exam: Exam) => {
     if (!user) return;
@@ -72,6 +192,7 @@ export const MrTesterMode: React.FC = () => {
         "id": "unique_id",
         "type": "mcq" | "short" | "concept",
         "question": "string",
+        "topic": "string",
         "options": ["string", "string", "string", "string"] (only for mcq),
         "correctAnswer": "string",
         "explanation": "string"
@@ -110,7 +231,7 @@ export const MrTesterMode: React.FC = () => {
   };
 
   const finishTest = async () => {
-    if (!user || !selectedExam) return;
+    if (!user) return;
 
     let score = 0;
     questions.forEach(q => {
@@ -119,21 +240,40 @@ export const MrTesterMode: React.FC = () => {
       }
     });
 
+    const percentage = Math.round((score / questions.length) * 100);
+
+    // Calculate breakdown
+    const topicStats: Record<string, { score: number, total: number }> = {};
+    questions.forEach(q => {
+      const isCorrect = userAnswers[q.id]?.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim();
+      if (!topicStats[q.topic]) topicStats[q.topic] = { score: 0, total: 0 };
+      topicStats[q.topic].total++;
+      if (isCorrect) topicStats[q.topic].score++;
+    });
+
+    const breakdown = Object.entries(topicStats).map(([topic, stats]) => ({
+      topic,
+      score: stats.score,
+      total: stats.total
+    }));
+
     const resultData: Omit<TestResult, 'id'> = {
       uid: user.uid,
-      examId: selectedExam.id,
-      examName: selectedExam.name,
+      examId: selectedExam?.id || planId || 'daily-test',
+      examName: selectedExam?.name || 'Daily Assessment',
       score,
       totalQuestions: questions.length,
-      percentage: Math.round((score / questions.length) * 100),
+      percentage,
       timestamp: new Date().toISOString(),
       questions: questions.map(q => ({
         question: q.question,
         userAnswer: userAnswers[q.id] || '',
         correctAnswer: q.correctAnswer,
         explanation: q.explanation,
+        topic: q.topic,
         isCorrect: userAnswers[q.id]?.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim()
-      }))
+      })),
+      breakdown
     };
 
     try {
@@ -142,11 +282,37 @@ export const MrTesterMode: React.FC = () => {
         setTestResult({ id: docRef.id, ...resultData });
         
         // Award XP
-        const xpGained = XP_VALUES.TEST_COMPLETED + (score * 5); // Bonus for correct answers
+        const xpGained = XP_VALUES.TEST_COMPLETED + (score * 5);
         await addXP(user.uid, xpGained, {
-          title: `Completed test for ${selectedExam.name}`,
+          title: `Completed test: ${selectedExam?.name || 'Daily Assessment'}`,
           type: 'test'
         });
+
+        // If it was a task-specific test, mark task as completed and update plan progress
+        if (taskId) {
+          await updateDoc(doc(db, 'tasks', taskId), {
+            status: 'completed',
+            completedAt: new Date().toISOString()
+          }).catch(err => handleFirestoreError(err, OperationType.UPDATE, `tasks/${taskId}`));
+
+          if (planId) {
+            // Update plan progress
+            const planDoc = await getDoc(doc(db, 'studyPlans', planId));
+            if (planDoc.exists()) {
+              const plan = planDoc.data() as StudyPlan;
+              const qTasks = query(collection(db, 'tasks'), where('planId', '==', planId));
+              const taskSnap = await getDocs(qTasks);
+              const allTasks = taskSnap.docs.map(d => d.data() as Task);
+              const completedTasks = allTasks.filter(t => t.status === 'completed').length;
+              const newProgress = Math.round((completedTasks / allTasks.length) * 100);
+              
+              await updateDoc(doc(db, 'studyPlans', planId), {
+                progress: newProgress,
+                performance: increment(percentage / allTasks.length) // Simple averaging
+              });
+            }
+          }
+        }
         
         setTestState('results');
       }

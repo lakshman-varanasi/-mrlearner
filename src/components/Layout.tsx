@@ -23,8 +23,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Exam Calendar', href: '/exams', icon: Calendar },
-    { name: 'Mr. Tutor', href: '/tutor', icon: GraduationCap },
-    { name: 'Mr. Thinker', href: '/thinker', icon: Brain },
+    { name: 'Mr. Learner', href: '/learner', icon: GraduationCap },
     { name: 'Mr. Tester', href: '/tester', icon: Sparkles },
     { name: 'Study Plan', href: '/plan', icon: BookOpen },
     { name: 'Analytics', href: '/analytics', icon: BarChart2 },

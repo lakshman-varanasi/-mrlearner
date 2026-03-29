@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase';
-import { Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, googleProvider, db } from '../firebase';
+import { Mail, Lock, Loader2, ArrowRight, User } from 'lucide-react';
 
 interface AuthPageProps {
   mode: 'signin' | 'signup';
@@ -10,6 +11,7 @@ interface AuthPageProps {
 
 export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +26,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       if (mode === 'signin') {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        // Update profile with username
+        await setDoc(doc(db, 'users', user.uid), {
+          uid: user.uid,
+          email: user.email || '',
+          username: username,
+          displayName: username,
+          streak: 0,
+          onboarded: false,
+          xp: 0,
+          level: 1,
+          recentActivity: [],
+          createdAt: new Date().toISOString()
+        }, { merge: true });
       }
       navigate('/dashboard');
     } catch (err: any) {
@@ -67,6 +84,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {mode === 'signup' && (
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">Username</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="johndoe"
+                    className="w-full pl-12 pr-4 py-3 rounded-2xl border border-neutral-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-2">Email Address</label>
               <div className="relative">
@@ -83,7 +116,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-2">Password</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-semibold text-neutral-700">Password</label>
+                {mode === 'signin' && (
+                  <Link to="/forgot-password" title="Reset your password" className="text-xs font-bold text-indigo-600 hover:underline">
+                    Forgot Password?
+                  </Link>
+                )}
+              </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
                 <input

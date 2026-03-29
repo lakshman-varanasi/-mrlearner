@@ -7,14 +7,16 @@
       "properties": {
         "uid": { "type": "string", "description": "Unique identifier for the user." },
         "email": { "type": "string", "format": "email" },
+        "username": { "type": "string", "description": "Unique username for the user." },
         "displayName": { "type": "string" },
         "goals": { "type": "string", "description": "Primary learning goals." },
         "subjects": { "type": "array", "items": { "type": "string" } },
         "availableTime": { "type": "number", "description": "Hours available per day." },
-        "streak": { "type": "integer", "description": "Current learning streak in days." },
+        "streak": { "type": "integer", "description": "Current learning streak in days (legacy, to be removed from UI)." },
         "lastActive": { "type": "string", "format": "date-time" },
         "onboarded": { "type": "boolean" },
-        "learningMode": { "type": "string", "enum": ["tutor", "thinker", "tester"] },
+        "lastUsernameUpdate": { "type": "string", "format": "date-time" },
+        "learningMode": { "type": "string", "enum": ["learner", "tester"] },
         "xp": { "type": "integer", "description": "Total experience points." },
         "level": { "type": "integer", "description": "Current user level." },
         "recentActivity": {
@@ -29,17 +31,99 @@
               "xpGained": { "type": "integer" }
             }
           }
+        },
+        "onboardingData": {
+          "type": "object",
+          "properties": {
+            "examDate": { "type": "string", "format": "date" },
+            "targetScore": { "type": "number" },
+            "difficultyPreference": { "type": "string", "enum": ["easy", "medium", "hard"] }
+          }
         }
       },
       "required": ["uid", "email", "xp", "level"]
     },
-    "TestResult": {
-      "title": "Test Result",
-      "description": "Stores the results of user tests in Mr. Tester mode.",
+    "AIInsight": {
+      "title": "AI Insight",
+      "description": "Proactive alerts, predictions, and motivational messages.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "type": { "type": "string", "enum": ["prediction", "alert", "motivation", "guidance"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "actionLabel": { "type": "string" },
+        "actionPath": { "type": "string" },
+        "actionType": { "type": "string", "enum": ["plan", "revise", "test", "recovery"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "isRead": { "type": "boolean" }
+      },
+      "required": ["uid", "type", "priority", "title", "content", "timestamp"]
+    },
+    "ExamPrediction": {
+      "title": "Exam Prediction",
+      "description": "AI-predicted questions and high-weight topics for an exam.",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
         "examId": { "type": "string" },
+        "examName": { "type": "string" },
+        "predictedQuestions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": { "type": "string" },
+              "weight": { "type": "string", "enum": ["high", "medium", "low"] },
+              "topic": { "type": "string" },
+              "explanation": { "type": "string" },
+              "trick": { "type": "string" },
+              "memoryTechnique": { "type": "string" }
+            }
+          }
+        },
+        "importantTopics": { "type": "array", "items": { "type": "string" } },
+        "frequentlyConfused": { "type": "array", "items": { "type": "string" } },
+        "mindMapText": { "type": "string" },
+        "generatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "examId", "generatedAt"]
+    },
+    "ChatSession": {
+      "title": "Chat Session",
+      "description": "Represents a single conversation session with an AI mode.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "title": { "type": "string" },
+        "mode": { "type": "string", "enum": ["learner", "tester"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "title", "mode", "createdAt", "lastUpdatedAt"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "An individual message within a chat session.",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "uid": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sessionId", "uid", "role", "content", "timestamp"]
+    },
+    "TestResult": {
+      "title": "Test Result",
+      "description": "Stores the results of user tests in Mr. Tester mode or daily tests.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "examId": { "type": "string" },
+        "planId": { "type": "string", "description": "Optional link to a study plan for daily tests." },
         "examName": { "type": "string" },
         "score": { "type": "integer" },
         "totalQuestions": { "type": "integer" },
@@ -47,17 +131,21 @@
         "timestamp": { "type": "string", "format": "date-time" },
         "questions": { "type": "array" }
       },
-      "required": ["uid", "examId", "score", "totalQuestions", "timestamp"]
+      "required": ["uid", "score", "totalQuestions", "timestamp"]
     },
     "StudyPlan": {
       "title": "Study Plan",
-      "description": "A generated study plan for a specific goal.",
+      "description": "A generated study plan for a specific goal or subject.",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
         "title": { "type": "string" },
+        "subject": { "type": "string" },
         "startDate": { "type": "string", "format": "date" },
         "endDate": { "type": "string", "format": "date" },
+        "streak": { "type": "integer", "description": "Daily streak for this specific plan." },
+        "performance": { "type": "number", "description": "Average test score for this plan." },
+        "progress": { "type": "number", "description": "Percentage of tasks completed." },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "title"]
@@ -114,6 +202,22 @@
     "/testResults/{resultId}": {
       "schema": "TestResult",
       "description": "User test results from Mr. Tester mode."
+    },
+    "/chatSessions/{sessionId}": {
+      "schema": "ChatSession",
+      "description": "Chat session documents."
+    },
+    "/chatMessages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Individual chat messages."
+    },
+    "/aiInsights/{insightId}": {
+      "schema": "AIInsight",
+      "description": "Proactive AI insights and alerts."
+    },
+    "/examPredictions/{predictionId}": {
+      "schema": "ExamPrediction",
+      "description": "AI exam question predictions."
     }
   }
 }

@@ -5,11 +5,14 @@ import { Layout } from './components/Layout';
 import { Landing } from './pages/Landing';
 import { Dashboard } from './pages/Dashboard';
 import { AuthPage } from './pages/Auth';
+import { ForgotPassword } from './pages/ForgotPassword';
 import { ModeSelection } from './pages/ModeSelection';
 import { ExamCalendar } from './pages/ExamCalendar';
-import { TutorMode } from './pages/TutorMode';
-import { ThinkerMode } from './pages/ThinkerMode';
+import { MrLearner } from './pages/MrLearner';
 import { MrTesterMode } from './pages/MrTesterMode';
+import { Analytics } from './pages/Analytics';
+import { ExamPredictionPage } from './pages/ExamPredictionPage';
+import { Settings } from './pages/Settings';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile, loading } = useAuth();
@@ -49,24 +52,6 @@ const PlanPage = () => (
   </div>
 );
 
-const AnalyticsPage = () => (
-  <div className="py-10">
-    <h1 className="text-4xl font-black mb-8">Analytics</h1>
-    <div className="bg-white p-12 rounded-[40px] border border-neutral-200 text-center">
-      <p className="text-neutral-500">Detailed progress charts and streak history coming soon.</p>
-    </div>
-  </div>
-);
-
-const SettingsPage = () => (
-  <div className="py-10">
-    <h1 className="text-4xl font-black mb-8">Settings</h1>
-    <div className="bg-white p-12 rounded-[40px] border border-neutral-200 text-center">
-      <p className="text-neutral-500">Profile and notification settings coming soon.</p>
-    </div>
-  </div>
-);
-
 export default function App() {
   return (
     <FirebaseProvider>
@@ -75,6 +60,7 @@ export default function App() {
           <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
           <Route path="/signin" element={<PublicRoute><AuthPage mode="signin" /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><AuthPage mode="signup" /></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
           
           <Route path="/select-mode" element={
             <ProtectedRoute>
@@ -84,12 +70,12 @@ export default function App() {
 
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/exams" element={<ProtectedRoute><ExamCalendar /></ProtectedRoute>} />
-          <Route path="/tutor" element={<ProtectedRoute><TutorMode /></ProtectedRoute>} />
-          <Route path="/thinker" element={<ProtectedRoute><ThinkerMode /></ProtectedRoute>} />
+          <Route path="/learner" element={<ProtectedRoute><MrLearner /></ProtectedRoute>} />
           <Route path="/tester" element={<ProtectedRoute><MrTesterMode /></ProtectedRoute>} />
           <Route path="/plan" element={<ProtectedRoute><PlanPage /></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+          <Route path="/exam-prediction" element={<ProtectedRoute><ExamPredictionPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
