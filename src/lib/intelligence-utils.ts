@@ -4,7 +4,14 @@ import { UserProfile, Exam, TestResult, StudyPlan, Task, AIInsight, ExamPredicti
 import { GoogleGenAI, Type } from "@google/genai";
 import { differenceInDays, parseISO, format, addDays, isBefore } from 'date-fns';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+let _ai: GoogleGenAI | null = null;
+function getAI(): GoogleGenAI {
+  if (!_ai) {
+    _ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+  }
+  return _ai;
+}
+const ai = { models: { generateContent: (args: Parameters<GoogleGenAI['models']['generateContent']>[0]) => getAI().models.generateContent(args) } };
 
 /**
  * Predictive Intelligence: Analyzes user data to generate proactive insights.
