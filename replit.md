@@ -65,3 +65,19 @@ Configured for autoscale deployment:
 - `intelligence-utils.ts` lazily initializes the GoogleGenAI client to avoid crashes when `GEMINI_API_KEY` is not set
 - All other Gemini usages are inside async functions (safe)
 - Firebase Admin is initialized in `server.ts` for password reset functionality
+
+## Firebase: Authorized Domains (IMPORTANT)
+
+Google Sign-In requires the Replit dev domain to be whitelisted in Firebase Console:
+1. Go to [Firebase Console](https://console.firebase.google.com) → Authentication → Settings → Authorized Domains
+2. Add: `6cab7a76-9ce9-464c-ba7a-7dd6f8c1bd71-00-cb1szwnkk2ro.sisko.replit.dev`
+3. For production deployment, also add the `.replit.app` domain
+
+The app handles this error gracefully — if the domain isn't authorized, a clear error message and link to Firebase Console is shown. Email/password auth works without this step.
+
+## UI Architecture (Updated)
+
+- **NextStepCard**: Smart contextual CTA shown at top of Dashboard — analyzes pending tasks, exam dates, and plan progress to surface the most relevant next action
+- **Dashboard**: Shows NextStepCard → Today's Tasks → Mr. Planner → Recommendations → AI Prediction
+- **Layout**: Simplified navigation — primary nav (Dashboard, Exams, Mr. Learner, Mr. Tester, Analytics) + secondary (Exam Prediction, Settings)
+- **Recommendations**: "Recommended for you / Based on your progress" section dynamically built from user data

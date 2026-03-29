@@ -3,10 +3,34 @@ import { useNavigate, Link } from 'react-router-dom';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
-import { Mail, Lock, Loader2, ArrowRight, User } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, User, AlertTriangle, ExternalLink } from 'lucide-react';
 
 interface AuthPageProps {
   mode: 'signin' | 'signup';
+}
+
+function getFriendlyError(code: string): { message: string; hint?: string } {
+  switch (code) {
+    case 'auth/unauthorized-domain':
+      return {
+        message: 'Google Sign-In is not enabled for this domain.',
+        hint: `To fix this, go to Firebase Console → Authentication → Settings → Authorized Domains and add: ${window.location.hostname}`,
+      };
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return { message: 'Incorrect email or password. Please try again.' };
+    case 'auth/email-already-in-use':
+      return { message: 'An account with this email already exists. Try signing in instead.' };
+    case 'auth/weak-password':
+      return { message: 'Password must be at least 6 characters.' };
+    case 'auth/too-many-requests':
+      return { message: 'Too many failed attempts. Please wait a few minutes and try again.' };
+    case 'auth/network-request-failed':
+      return { message: 'Network error. Please check your connection and try again.' };
+    default:
+      return { message: 'Something went wrong. Please try again.' };
+  }
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
@@ -14,13 +38,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState<{ message: string; hint?: string } | null>(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError(null);
 
     try {
       if (mode === 'signin') {
@@ -28,8 +53,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        
-        // Update profile with username
         await setDoc(doc(db, 'users', user.uid), {
           uid: user.uid,
           email: user.email || '',
@@ -45,18 +68,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       }
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      setError(getFriendlyError(err.code));
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setError(null);
     try {
       await signInWithPopup(auth, googleProvider);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Google Sign In failed');
+      setError(getFriendlyError(err.code));
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -78,12 +105,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
         <div className="bg-white p-8 rounded-[40px] border border-neutral-200 shadow-sm">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm font-medium rounded-2xl border border-red-100">
-              {error}
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <p className="text-sm font-semibold text-red-700">{error.message}</p>
+              </div>
+              {error.hint && (
+                <p className="text-xs text-red-500 pl-6 leading-relaxed">{error.hint}</p>
+              )}
+              {error.hint && (
+                <a
+                  href="https://console.firebase.google.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs font-bold text-red-600 hover:underline pl-6"
+                >
+                  Open Firebase Console <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {mode === 'signup' && (
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-2">Username</label>
@@ -100,6 +143,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                 </div>
               </div>
             )}
+
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-2">Email Address</label>
               <div className="relative">
@@ -119,7 +163,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-semibold text-neutral-700">Password</label>
                 {mode === 'signin' && (
-                  <Link to="/forgot-password" title="Reset your password" className="text-xs font-bold text-indigo-600 hover:underline">
+                  <Link to="/forgot-password" className="text-xs font-bold text-indigo-600 hover:underline">
                     Forgot Password?
                   </Link>
                 )}
@@ -151,7 +195,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
             </button>
           </form>
 
-          <div className="relative my-8">
+          <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-neutral-100"></div>
             </div>
@@ -162,18 +206,25 @@ export const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
           <button
             onClick={handleGoogleSignIn}
-            className="w-full py-4 bg-white border-2 border-neutral-100 text-neutral-900 rounded-2xl font-bold hover:bg-neutral-50 transition-all flex items-center justify-center gap-3"
+            disabled={googleLoading}
+            className="w-full py-4 bg-white border-2 border-neutral-100 text-neutral-900 rounded-2xl font-bold hover:bg-neutral-50 disabled:opacity-50 transition-all flex items-center justify-center gap-3"
           >
-            <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
-            Google
+            {googleLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+                Continue with Google
+              </>
+            )}
           </button>
         </div>
 
         <p className="text-center mt-8 text-neutral-500 font-medium">
           {mode === 'signin' ? (
-            <>Don't have an account? <Link to="/signup" className="text-indigo-600 hover:underline">Create one</Link></>
+            <>Don't have an account? <Link to="/signup" className="text-indigo-600 hover:underline font-bold">Create one</Link></>
           ) : (
-            <>Already have an account? <Link to="/signin" className="text-indigo-600 hover:underline">Sign in</Link></>
+            <>Already have an account? <Link to="/signin" className="text-indigo-600 hover:underline font-bold">Sign in</Link></>
           )}
         </p>
       </div>
