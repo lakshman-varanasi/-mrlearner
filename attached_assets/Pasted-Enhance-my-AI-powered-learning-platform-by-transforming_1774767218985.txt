@@ -1,0 +1,289 @@
+Enhance my AI-powered learning platform by transforming **Mr. Learner** into a complete, guided learning system integrated with Mr. Planner and Mr. Tester.
+
+---
+
+# 🔹 Core Objective
+
+Create a **smart AI mentor experience** where:
+
+* Users can choose between doubt solving or exam preparation
+* Learning is continuous (no chat resets)
+* System guides users step-by-step until test and analysis
+
+---
+
+# 🔹 Feature 1: Entry Flow in Mr. Learner
+
+### When user opens Mr. Learner:
+
+Display two clear options:
+
+1. “Ask Doubts”
+2. “Prepare for Examination”
+
+---
+
+### Behavior:
+
+#### If user selects “Ask Doubts”:
+
+* Open full-page chat interface
+* Allow user to ask any doubts
+* Provide:
+
+  * Clear explanations
+  * Examples
+  * Simple breakdown
+
+---
+
+#### If user selects “Prepare for Examination”:
+
+* Show:
+
+  * Important Questions
+  * Answers
+  * Key Concepts
+
+---
+
+### Additional Option:
+
+* Button: “Generate PDF”
+
+  * Create downloadable PDF of:
+
+    * Important questions
+    * Answers
+    * Concepts
+
+---
+
+# 🔹 Feature 2: Persistent Chat System
+
+### Changes:
+
+* Remove “New Chat” option
+* Chat should be **exam-based and persistent**
+
+---
+
+### Behavior:
+
+* When user selects the same exam:
+
+  * Load previous chat automatically
+* Allow:
+
+  * Continue conversation
+  * Maintain context
+
+---
+
+# 🔹 Feature 3: Study Plan Suggestion (Smart Trigger)
+
+### When user asks about preparation:
+
+* Show suggestion:
+
+  * “Do you want to create a study plan based on your syllabus and exam date?”
+
+---
+
+### If user accepts:
+
+* Generate:
+
+  * Time table
+  * Topic-wise plan
+  * Daily tasks
+
+---
+
+# 🔹 Feature 4: Mr. Planner (New Section)
+
+### Create a separate section: **Mr. Planner**
+
+---
+
+### Contents:
+
+* Generated study plan
+* Daily tasks list
+* Task completion tracking
+
+---
+
+### Behavior:
+
+* User marks tasks as:
+
+  * Completed / Not Completed
+
+---
+
+### Smart Suggestions:
+
+* If incomplete:
+
+  * “You have pending tasks to complete”
+  * “Adjust your schedule?”
+
+---
+
+# 🔹 Feature 5: Test Trigger System (Mr. Tester Integration)
+
+### When all tasks are completed:
+
+* Show button:
+
+  * “Ready for Test”
+
+---
+
+### On click:
+
+* Redirect to **Mr. Tester**
+
+---
+
+### Test Generation:
+
+* Questions based on:
+
+  * Completed topics
+  * Important questions
+
+---
+
+# 🔹 Feature 6: Performance Feedback System
+
+### After test:
+
+#### If user performs well:
+
+* Show:
+
+  * “You prepared well. Keep it up!”
+
+---
+
+#### If user performs poorly:
+
+* Show:
+
+  * “You need more practice”
+  * Suggest:
+
+    * Weak topics
+    * Revision plan
+
+---
+
+#### If user did not study:
+
+* Show:
+
+  * “No preparation detected”
+  * Suggest:
+
+    * Start study plan
+    * Begin with important topics
+
+---
+
+# 🔹 Feature 7: Smart Enhancements (UPGRADE)
+
+## 1. Resume Learning
+
+* On login:
+
+  * “Continue your preparation for [Exam Name]”
+
+---
+
+## 2. Weak Area Detection
+
+* Identify:
+
+  * Topics where user struggles
+* Suggest:
+
+  * Practice questions
+  * Revision
+
+---
+
+## 3. Adaptive Difficulty
+
+* If user scores high → increase difficulty
+* If low → simplify content
+
+---
+
+## 4. Predictive Suggestions
+
+* “Your exam is near, revise these topics first”
+
+---
+
+## 5. Focus Mode
+
+* Distraction-free UI for studying
+
+---
+
+# 🔹 UI/UX Requirements
+
+* Full-page chat interface (no small chat box)
+* Clean and simple layout
+* Clear navigation:
+
+  * Learner → Planner → Tester
+* Action buttons:
+
+  * Generate Plan
+  * Mark Complete
+  * Ready for Test
+
+---
+
+# 🔹 Backend Requirements
+
+* Store:
+
+  * Chat per exam
+  * Study plans
+  * Task completion
+  * Test results
+
+---
+
+### APIs:
+
+* Fetch exam data
+* Chat handling
+* Generate study plan
+* Update tasks
+* Generate test
+* Evaluate performance
+
+---
+
+# 🔹 Final Goal
+
+Create a system where:
+
+* User starts with learning
+* Gets guided into planning
+* Completes tasks
+* Takes test
+* Receives feedback
+
+---
+
+Make the platform feel like a **personal AI mentor**, not just a chatbot.
+
+---
+
+Generate clean, modular, scalable frontend and backend implementation.
